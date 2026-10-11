@@ -1,0 +1,81 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import brentq
+
+
+DATEI = "071026_G3_Messung2.dat"
+VOR   = (0, 990)         # Vorperiode in s
+NACH  = (1700, 2146)     # Nachperiode in s
+HAUPT = (990, 1700)      # Hauptperiode in s (Integrationsbereich)
+VOR_GERADE = None        # None = Fit der Vorperiode, sonst (Steigung in K/s, Achsenabschnitt in K)
+
+trapz = getattr(np, "trapezoid", None) or np.trapz
+d = np.loadtxt(DATEI, skiprows=1, encoding="latin-1")
+t, T = d[:, 1], d[:, 2]
+
+def fit(a, b):
+    s = (t >= a) & (t <= b)
+    (m, c), cov = np.polyfit(t[s], T[s], 1, cov=True)
+    return m, c, cov
+
+def se(cov, x):
+    v = np.array([x, 1.0])
+    return float(np.sqrt(v @ cov @ v))
+
+if VOR_GERADE is None:
+    mV, cV, covV = fit(*VOR)
+else:
+    mV, cV = VOR_GERADE
+    covV = np.zeros((2, 2))
+mN, cN, covN = fit(*NACH)
+
+tt = np.linspace(HAUPT[0], HAUPT[1], 60001)
+TT = np.interp(tt, t, T)
+TV = cV + mV * tt
+TN = cN + mN * tt
+
+def F(tx):
+    l = tt <= tx
+    r = tt >= tx
+    links = trapz(TT[l] - TV[l], tt[l])
+    rechts = trapz(TN[r] - TT[r], tt[r])
+    return links - rechts
+
+tx = brentq(F, HAUPT[0] + 1, HAUPT[1] - 1)
+Tv = cV + mV * tx
+Tn = cN + mN * tx
+dT = Tn - Tv
+
+l = tt <= tx
+r = tt >= tx
+A1 = trapz(TT[l] - TV[l], tt[l])
+A2 = trapz(TN[r] - TT[r], tt[r])
+
+print(f"t_x = {tx:.1f} s")
+print(f"T_V(t_x) = {Tv:.4f}, T_N(t_x) = {Tn:.4f}")
+print(f"dT = {dT:.4f} K  (se = {np.hypot(se(covV, tx), se(covN, tx)):.4f} K)")
+print(f"Flächen: links = {A1:.3f} K*s, rechts = {A2:.3f} K*s")
+print(f"Steigung Vor = {mV*6e4:.2f} mK/min, Nach = {mN*6e4:.2f} mK/min")
+
+fig, ax = plt.subplots(figsize=(7, 4.5), dpi=200)
+ax.plot(t, T, color="#1f6fb4", lw=1.1, label="Messwerte")
+xv = np.array([t[0], tx])
+xn = np.array([tx, t[-1]])
+ax.plot(xv, cV + mV * xv, "--", color="#444444", lw=1.2, label="Vorperiode")
+ax.plot(xn, cN + mN * xn, "--", color="#c4551a", lw=1.2, label="Nachperiode")
+ax.axvline(tx, color="#888888", lw=0.8, ls=":")
+ax.fill_between(tt[l], TV[l], TT[l], color="#1f6fb4", alpha=0.25, lw=0)
+ax.fill_between(tt[r], TT[r], TN[r], color="#c4551a", alpha=0.25, lw=0)
+ax.annotate("", xy=(tx, Tn), xytext=(tx, Tv),
+            arrowprops=dict(arrowstyle="<->", lw=0.9, shrinkA=0, shrinkB=0))
+ax.text(tx + 15, (Tv + Tn) / 2, rf"$\Delta T = {dT:.2f}\,$K", fontsize=9)
+ax.set_xlabel("$t$ / s")
+ax.set_ylabel(r"$T$ / °C")
+ax.grid(alpha=0.25, lw=0.6)
+ax.legend(frameon=False, fontsize=8)
+for s in ("top", "right"):
+    ax.spines[s].set_visible(False)
+fig.tight_layout()
+fig.savefig("diagramm.pdf")
+fig.savefig("diagramm.png")
+plt.show()
