@@ -1,0 +1,211 @@
+import math
+import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
+def fit(t, T, a, b):
+    m = (t >= a) & (t <= b)
+    return np.polyfit(t[m], T[m], 1)
+
+def tx_dT(t, T, pv, pn, t0, t1, extra=None):
+    tt = np.linspace(t0, t1, 20001)
+    TT = np.interp(tt, t, T)
+    L = TT - np.polyval(pv, tt)
+    R = np.polyval(pn, tt) - TT
+    cl = np.concatenate([[0], np.cumsum((L[1:] + L[:-1]) / 2 * np.diff(tt))])
+    cr = np.concatenate([[0], np.cumsum((R[1:] + R[:-1]) / 2 * np.diff(tt))])
+    right = cr[-1] - cr
+    if extra:
+        cl = cl + extra
+    i = np.argmin(abs(cl - right))
+    return tt[i], np.polyval(pn, tt[i]) - np.polyval(pv, tt[i]), cl[i], right[i]
+
+d = np.load('comb.npy')
+tc, Tc = d[:, 0], d[:, 1]
+
+D = np.loadtxt('/mnt/user-data/uploads/071026_G3_Kalibration.dat', skiprows=1, encoding='latin-1')
+tk, Tk = D[:, 1], D[:, 2]
+
+for a in [1500, 2000, 2500]:
+    print(a, fit(tc, Tc, a, 2900)[0] * 60e3)
+for a in [3300, 3500, 3700]:
+    pn = fit(tc, Tc, a, 4545)
+    pv = fit(tc, Tc, 0, 2900)
+    print(a, pn[0] * 60e3, tx_dT(tc, Tc, pv, pn, 2900, 3500))
+
+pvc = fit(tc, Tc, 0, 2900)
+pnc = fit(tc, Tc, 3500, 4545)
+txc, dTc, l, rr = tx_dT(tc, Tc, pvc, pnc, 2900, 3500)
+print(pvc[0] * 6e4, pnc[0] * 6e4, txc, np.polyval(pvc, txc), np.polyval(pnc, txc), dTc, l, rr)
+for a in [0, 1000, 2000, 2500]:
+    print(a, tx_dT(tc, Tc, fit(tc, Tc, a, 2900), pnc, 2900, 3500)[1])
+for a in [3400, 3500, 3700, 3900]:
+    print(a, tx_dT(tc, Tc, pvc, fit(tc, Tc, a, 4545), 2900, 3500)[1])
+
+for a in range(0, 400, 20):
+    m = (tk >= a) & (tk < a + 20)
+    p = np.polyfit(tk[m], Tk[m], 1)
+    print(a, p[0] * 1000, Tk[m].mean())
+
+for a in [400, 500, 650, 800, 1000]:
+    print(a, fit(tk, Tk, a, 1386)[0] * 6e4)
+
+s = pnc[0]
+rate = (Tk[10] - Tk[0]) / (tk[10] - tk[0])
+for g in [0, 30, 60, 90, 120]:
+    V0 = np.polyval(pnc, 4545 + g)
+    pvk = np.array([s, V0])
+    pnk = fit(tk, Tk, 650, 1386)
+    Dl = (Tk[0] - V0) / rate
+    gap = 0.5 * (Tk[0] - V0) * Dl
+    for extra in [0, gap]:
+        tx, dT, l, rr = tx_dT(tk, Tk, pvk, pnk, 0, 1386, extra)
+        print(g, extra, Dl, tx, dT, l, rr, np.polyval(pvk, tx), np.polyval(pnk, tx))
+
+V0 = np.polyval(pnc, 4545 + 60)
+pvk = np.array([s, V0])
+Dl = (Tk[0] - V0) / rate
+gap = 0.5 * (Tk[0] - V0) * Dl
+for a in [400, 500, 650, 800, 1000]:
+    print(a, tx_dT(tk, Tk, pvk, fit(tk, Tk, a, 1386), 0, 1386, gap)[1])
+for Dl2 in [43, 55]:
+    print(Dl2, tx_dT(tk, Tk, pvk, fit(tk, Tk, 650, 1386), 0, 1386, 0.5 * (Tk[0] - V0) * Dl2)[:2])
+
+plt.rcParams.update({'font.family': 'serif', 'mathtext.fontset': 'stix', 'font.size': 10})
+pnk = fit(tk, Tk, 650, 1386)
+txk, dTk, _, _ = tx_dT(tk, Tk, pvk, pnk, 0, 1386, gap)
+tg = np.array([-Dl, 0])
+Tg = np.array([np.polyval(pvk, -Dl), Tk[0]])
+
+def shade(ax, t, T, pv, pn, tx, t0, t1):
+    tt = np.linspace(t0, tx, 2000)
+    ax.fill_between(tt, np.polyval(pv, tt), np.interp(tt, t, T), color='tab:orange', alpha=.45, hatch='///', lw=0)
+    tt = np.linspace(tx, t1, 2000)
+    ax.fill_between(tt, np.interp(tt, t, T), np.polyval(pn, tt), color='tab:green', alpha=.45, hatch='\\\\\\', lw=0)
+    ax.axvline(tx, color='k', ls=':', lw=1)
+
+fig, ax = plt.subplots(1, 2, figsize=(10, 4))
+for a in ax:
+    a.plot(tc, Tc, '.', ms=2, color='tab:blue', label='Messwerte')
+    x = np.array([0, 4545])
+    a.plot(x, np.polyval(pvc, x), '--', color='gray', lw=1, label='Vorperiode')
+    a.plot(x, np.polyval(pnc, x), '--', color='k', lw=1, label='Nachperiode')
+    a.set_xlabel('t / s')
+    a.set_ylabel('T / °C')
+    a.grid(alpha=.3)
+ax[0].legend(loc='upper left', fontsize=8)
+a = ax[1]
+a.set_xlim(2850, 3700)
+a.set_ylim(26.85, 28.05)
+shade(a, tc, Tc, pvc, pnc, txc, 2900, 3700)
+a.annotate('', xy=(txc, np.polyval(pnc, txc)), xytext=(txc, np.polyval(pvc, txc)), arrowprops=dict(arrowstyle='<->'))
+a.text(txc + 15, 27.4, f'$\\Delta T$ = {dTc:.3f} K', fontsize=9)
+a.text(txc + 5, 26.87, '$t_x$', fontsize=9)
+plt.tight_layout()
+plt.savefig('verbrennung1.pdf')
+
+fig, a = plt.subplots(figsize=(7.5, 4.5))
+a.plot(tk, Tk, '.', ms=2, color='tab:blue', label='Messwerte')
+a.plot(tg, Tg, ':', color='tab:blue', label='angenommener Anstieg (nicht aufgezeichnet)')
+x = np.array([-60, 1386])
+a.plot(x, np.polyval(pvk, x), '--', color='gray', lw=1, label='Vorperiode (verl. Nachperiode Verbr.)')
+a.plot(x, np.polyval(pnk, x), '--', color='k', lw=1, label='Nachperiode')
+tt = np.linspace(-Dl, txk, 2000)
+Tcur = np.interp(tt, np.r_[tg, tk], np.r_[Tg, Tk])
+a.fill_between(tt, np.polyval(pvk, tt), Tcur, color='tab:orange', alpha=.45, hatch='///', lw=0)
+tt = np.linspace(txk, 1386, 2000)
+a.fill_between(tt, np.interp(tt, tk, Tk), np.polyval(pnk, tt), color='tab:green', alpha=.45, hatch='\\\\\\', lw=0)
+a.axvline(txk, color='k', ls=':', lw=1)
+a.set_xlabel('t / s')
+a.set_ylabel('T / °C')
+a.grid(alpha=.3)
+a.legend(fontsize=8, loc='lower right')
+a.set_xlim(-80, 1400)
+plt.tight_layout()
+plt.savefig('kalibration1.pdf')
+
+fig, a = plt.subplots(figsize=(10, 4.2))
+off = 4545 + 60
+a.plot(tc, Tc, '.', ms=2, color='tab:blue')
+a.plot(tk + off, Tk, '.', ms=2, color='tab:blue')
+a.plot([4545, off - Dl], [np.polyval(pnc, 4545), V0], ':', color='gray', lw=.8)
+a.plot(tg + off, Tg, ':', color='tab:blue')
+x = np.array([0, off + 1386])
+a.plot(x, np.polyval(pvc, x), '--', color='gray', lw=1)
+x = np.array([3000, off + 1386])
+a.plot(x, np.polyval(pnc, x), '--', color='k', lw=1)
+x = np.array([off - 60, off + 1386])
+a.plot(x, np.polyval(pnk, x - off), '--', color='k', lw=1)
+shade(a, tc, Tc, pvc, pnc, txc, 2900, 3700)
+tt = np.linspace(-Dl, txk, 2000)
+a.fill_between(tt + off, np.polyval(pvk, tt), np.interp(tt, np.r_[tg, tk], np.r_[Tg, Tk]), color='tab:orange', alpha=.45, hatch='///', lw=0)
+tt = np.linspace(txk, 1386, 2000)
+a.fill_between(tt + off, np.interp(tt, tk, Tk), np.polyval(pnk, tt), color='tab:green', alpha=.45, hatch='\\\\\\', lw=0)
+a.axvline(txk + off, color='k', ls=':', lw=1)
+a.set_xlabel('t / s')
+a.set_ylabel('T / °C')
+a.grid(alpha=.3)
+plt.tight_layout()
+plt.savefig('messung1_gesamt.pdf')
+
+M = 12.011
+
+def P_int(pts, tend):
+    tt = [p[0] for p in pts]
+    PP = [p[1] for p in pts]
+    if tt[0] > 0:
+        tt = [0] + tt
+        PP = [PP[0]] + PP
+    tt.append(tend)
+    PP.append(PP[-1])
+    return np.trapezoid(PP, tt)
+
+m1 = [(0, 22.2), (80, 22.1), (120, 22.0), (190, 22.1)]
+m2 = [(20, 22.7), (50, 22.6), (90, 22.4), (130, 22.6), (170, 22.4), (180, 22.3), (190, 22.4)]
+Q1 = P_int(m1, 205)
+Q2 = P_int(m2, 290)
+print(Q1, Q1 / 205, Q2, Q2 / 290)
+print(22.1 * 205, 22.4 * 290)
+m2b = m2[:-1] + [(180, 22.3), (181, 22.4)]
+print(P_int(m2b, 290))
+tb = [0, 20, 50, 90, 130, 170, 180, 290]
+Pb = [22.7, 22.6, 22.4, 22.6, 22.4, 22.3, 22.4]
+print(sum(p * (b - a_) for p, a_, b in zip(Pb, tb[:-1], tb[1:])))
+tc2 = [20, 50, 90, 130, 170, 180, 190, 290]
+Pc = [22.7, 22.6, 22.4, 22.6, 22.4, 22.3, 22.4]
+print(22.7 * 20 + sum(p * (b - a_) for p, a_, b in zip(Pc, tc2[:-1], tc2[1:])))
+print(np.mean([22.7, 22.6, 22.4, 22.6, 22.4, 22.3, 22.4]) * 290)
+print(22.2 * 80 + 22.1 * 40 + 22.0 * 70 + 22.1 * 15)
+
+def res(Q, dTk_, dTc_, m, rest, dw, ign):
+    C = Q / dTk_
+    Qt = C * dTc_
+    net = Qt - dw * 5 - ign
+    n = (m - rest) / M
+    return C, Qt, net, n * 1000, -net / n / 1000
+
+for nm, a_ in [('M1', (Q1, 1.2487, 1.0736, 0.197, 0.07, 8, 192)), ('M2', (Q2, 1.728, 1.636, 0.295, 0.10, 5, 216))]:
+    r_ = res(*a_)
+    print(nm, r_, -393.6 - r_[4])
+
+for rest in [0.05, 0.07, 0.09]:
+    print(rest, res(Q1, 1.2487, 1.0736, 0.197, rest, 8, 192)[4])
+for rest in [0.08, 0.10, 0.12]:
+    print(rest, res(Q2, 1.728, 1.636, 0.295, rest, 5, 216)[4])
+for rest in [0, 0.03, 0.05, 0.07]:
+    print(rest, res(Q1, 1.2487, 1.0736, 0.197, rest, 8, 192)[4])
+
+rel1 = math.sqrt((0.03 / 1.249) ** 2 + (0.02 / 1.074) ** 2 + 0.01 ** 2)
+rel2 = math.sqrt((0.03 / 1.728) ** 2 + (0.03 / 1.636) ** 2 + 0.01 ** 2)
+print(rel1, rel2, 3894 * rel1, 6173 * rel2)
+print(3894 * 0.03 / 10.574, 6173 * 0.03 / 16.235)
+
+R = 8.314
+T0 = 298.15
+p = 8e5
+print(0.295 / M * R * T0 / p * 1e6)
+for d_ in [4, 4.5, 5]:
+    V = math.pi * (d_ / 2) ** 2 * 15
+    n = p * V * 1e-6 / (R * T0)
+    print(d_, V, n * 1000, n / (0.197 / M), n / (0.295 / M))
