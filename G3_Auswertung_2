@@ -209,3 +209,62 @@ for d_ in [4, 4.5, 5]:
     V = math.pi * (d_ / 2) ** 2 * 15
     n = p * V * 1e-6 / (R * T0)
     print(d_, V, n * 1000, n / (0.197 / M), n / (0.295 / M))
+
+plt.rcParams.update({'font.family': 'serif', 'mathtext.fontset': 'stix', 'font.size': 10})
+
+H0 = 0.0
+Hco2 = -393.6
+f1 = -47.3
+f2 = -28.2
+c1 = 'tab:blue'
+c2 = 'tab:orange'
+
+fig, ax = plt.subplots(figsize=(8, 5.6))
+
+def bar(x0, x1, y, col):
+    ax.hlines(y, x0, x1, color=col, lw=3)
+
+def arrow(x, ya, yb, col):
+    ax.annotate('', xy=(x, yb), xytext=(x, ya),
+                arrowprops=dict(arrowstyle='->', color=col, lw=1.6, shrinkA=0, shrinkB=0))
+
+bar(0, 1.4, H0, 'k')
+bar(3.0, 4.4, f1, c1)
+bar(3.0, 4.4, f2, c2)
+bar(6.2, 7.6, Hco2, 'k')
+
+ax.text(0.7, 12, r'C(Graphit) + O$_2$', ha='center', va='bottom')
+ax.text(3.7, 12, r'Aktivkohle + O$_2$', ha='center', va='bottom')
+ax.text(6.9, Hco2 - 12, r'CO$_2$', ha='center', va='top')
+
+for y, col, x0, x1 in [(H0, 'gray', 1.4, 6.2), (f1, c1, 4.4, 6.2), (f2, c2, 4.4, 6.2)]:
+    ax.hlines(y, x0, x1, color=col, lw=0.8, ls=':')
+ax.hlines(Hco2, 1.4, 6.2, color='gray', lw=0.8, ls=':')
+ax.hlines(Hco2, 4.4, 6.2, color='gray', lw=0.8, ls=':')
+
+arrow(1.9, H0, Hco2, 'k')
+ax.text(1.75, -200, r'$\Delta_\mathrm{c}H^\circ$(Graphit)' + '\n' + r'$=\,-393{,}6$ kJ/mol',
+        rotation=90, ha='right', va='center', fontsize=9)
+
+arrow(3.35, H0, f1, c1)
+arrow(4.05, H0, f2, c2)
+ax.hlines(H0, 1.4, 3.0, color='gray', lw=0.8, ls=':')
+ax.hlines(H0, 3.0, 4.4, color='gray', lw=0.8, ls=':')
+ax.text(3.7, -85, r'$\Delta_\mathrm{f}H^\circ$(Messung 1) $=\,-47$ kJ/mol', color=c1, ha='center', va='top', fontsize=9)
+ax.text(3.7, -112, r'$\Delta_\mathrm{f}H^\circ$(Messung 2) $=\,-28$ kJ/mol', color=c2, ha='center', va='top', fontsize=9)
+
+arrow(5.1, f1, Hco2, c1)
+arrow(5.8, f2, Hco2, c2)
+ax.text(4.95, -230, r'$\Delta_\mathrm{c}H^\circ_1 = -346$ kJ/mol', rotation=90, color=c1, ha='right', va='center', fontsize=9)
+ax.text(5.95, -210, r'$\Delta_\mathrm{c}H^\circ_2 = -365$ kJ/mol', rotation=90, color=c2, ha='left', va='center', fontsize=9)
+
+ax.text(2.9, f1, 'Messung 1', color=c1, ha='right', va='center', fontsize=8)
+ax.text(2.9, f2, 'Messung 2', color=c2, ha='right', va='center', fontsize=8)
+
+ax.set_xlim(-0.3, 8)
+ax.set_ylim(-430, 40)
+ax.set_xticks([])
+ax.set_ylabel(r'$H$ / (kJ/mol)')
+ax.spines[['top', 'right', 'bottom']].set_visible(False)
+plt.tight_layout()
+plt.savefig('enthalpie_niveau.pdf')
