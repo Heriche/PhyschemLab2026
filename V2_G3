@@ -1,12 +1,12 @@
-#Teile wurden mit Ai erzeugt da dies schneller und effizienter ist. 
 
 import numpy as np
 import matplotlib.pyplot as plt
- 
+
 kB = 1.380649e-23
 NA = 6.02214076e23
+R = NA * kB
 N0 = 100
- 
+
 u5 = {
     140: dict(T=[101.1, 249.2, 497.7, 754.4, 1004], p=[0.5085, 1.254, 2.504, 3.796, 5.052], sd=[0.05694, 0.1045, 0.2128, 0.3232, 0.4584]),
     150: dict(T=[100.2, 250.6, 502.7, 747.5, 1003], p=[0.4099, 1.025, 2.057, 3.058, 4.105], sd=[0.05314, 0.08005, 0.1715, 0.2583, 0.3463]),
@@ -14,68 +14,167 @@ u5 = {
     170: dict(T=[99.85, 251.8, 503.0, 742.7, 1012], p=[0.2806, 0.7077, 1.413, 2.087, 2.843], sd=[0.03234, 0.05793, 0.1169, 0.1849, 0.2518]),
 }
 u6 = {
-    0.5: dict(T=[98.92, 198.0, 297.0, 395.9, 990.5], V=[2.735e-21, 5.471e-21, 8.206e-21, 1.094e-20, 2.735e-20]),
-    1.0: dict(T=[99.01, 197.9, 297.0, 395.8, 990.2], V=[1.367e-21, 2.733e-21, 4.100e-21, 5.467e-21, 1.367e-20]),
-    1.5: dict(T=[98.91, 198.1, 297.0, 395.8, 989.5], V=[9.106e-22, 1.821e-21, 2.732e-21, 3.643e-21, 9.107e-21]),
+    0.5: dict(T=[98.92, 198.0, 297.0, 395.9, 990.5], V=[2.735e-21, 5.471e-21, 8.206e-21, 1.094e-20, 2.735e-20], sd=[1.932e-23, 3.818e-23, 5.704e-23, 7.596e-23, 1.886e-22]),
+    1.0: dict(T=[99.01, 197.9, 297.0, 395.8, 990.2], V=[1.367e-21, 2.733e-21, 4.100e-21, 5.467e-21, 1.367e-20], sd=[9.635e-24, 1.882e-23, 2.795e-23, 3.716e-23, 9.180e-23]),
+    1.5: dict(T=[98.91, 198.1, 297.0, 395.8, 989.5], V=[9.106e-22, 1.821e-21, 2.732e-21, 3.643e-21, 9.107e-21], sd=[6.283e-24, 1.224e-23, 1.808e-23, 2.389e-23, 5.860e-23]),
 }
 invV = [3.644e20, 2.963e20, 2.441e20, 2.035e20]
-u7 = {100: [0.5108, 0.4111, 0.3402, 0.2837], 250: [1.244, 1.017, 0.8497, 0.7017],
-      500: [2.488, 2.000, 1.690, 1.412], 750: [3.753, 3.059, 2.533, 2.094], 1000: [5.102, 4.071, 3.354, 2.781]}
+u7 = {
+    100: dict(p=[0.5108, 0.4111, 0.3402, 0.2837], sd=[6.431e-2, 5.167e-2, 4.051e-2, 3.390e-2]),
+    250: dict(p=[1.244, 1.017, 0.8497, 0.7017], sd=[9.678e-2, 8.792e-2, 7.115e-2, 5.460e-2]),
+    500: dict(p=[2.488, 2.000, 1.690, 1.412], sd=[2.245e-1, 1.693e-1, 1.344e-1, 1.182e-1]),
+    750: dict(p=[3.753, 3.059, 2.533, 2.094], sd=[3.303e-1, 2.557e-1, 2.257e-1, 1.849e-1]),
+    1000: dict(p=[5.102, 4.071, 3.354, 2.781], sd=[4.660e-1, 3.633e-1, 2.933e-1, 2.572e-1]),
+}
 N8 = [50, 100, 250, 500]
-u8 = {0.5: [4.064e-21, 8.206e-21, 2.063e-20, 4.134e-20], 1.0: [2.029e-21, 4.100e-21, 1.031e-20, 2.067e-20],
-      1.5: [1.351e-21, 2.732e-21, 6.874e-21, 1.378e-20]}
- 
+u8 = {
+    0.5: dict(V=[4.064e-21, 8.206e-21, 2.063e-20, 4.134e-20], sd=[5.823e-23, 5.706e-23, 5.300e-23, 4.580e-23]),
+    1.0: dict(V=[2.029e-21, 4.100e-21, 1.031e-20, 2.067e-20], sd=[2.851e-23, 2.800e-23, 2.602e-23, 2.263e-23]),
+    1.5: dict(V=[1.351e-21, 2.732e-21, 6.874e-21, 1.378e-20], sd=[1.851e-23, 1.806e-23, 1.673e-23, 1.453e-23]),
+}
+u11 = [
+    (0.5, 50, 294.03, 4.0642e-21, 0.4995), (0.5, 100, 296.98, 8.2064e-21, 0.4997),
+    (0.5, 250, 298.81, 2.0632e-20, 0.4999), (0.5, 500, 299.40, 4.1341e-20, 0.4999),
+    (1.0, 50, 294.05, 2.0293e-21, 1.0005), (1.0, 100, 297.01, 4.1000e-21, 1.0002),
+    (1.0, 250, 298.78, 1.0313e-20, 1.0000), (1.0, 500, 299.40, 2.0668e-20, 1.0000),
+    (1.5, 50, 294.02, 1.3512e-21, 1.5024), (1.5, 100, 296.96, 2.7320e-21, 1.5008),
+    (1.5, 250, 298.80, 6.8741e-21, 1.5003), (1.5, 500, 299.40, 1.3778e-20, 1.5001),
+]
+u12 = {"He": (270.5, 3.6840e-21, 2.53e-23), "Ne": (270.5, 3.6840e-21, 2.53e-23),
+       "Ar": (270.4, 3.6840e-21, 2.52e-23), "Kr": (270.4, 3.6840e-21, 2.52e-23),
+       "Xe": (270.4, 3.6840e-21, 2.53e-23)}
+
+
 def fit_frei(x, y):
     (m, b), cov = np.polyfit(x, y, 1, cov=True)
     return m, np.sqrt(cov[0, 0]), b, np.sqrt(cov[1, 1])
- 
+
+
 def fit_ursprung(x, y):
     x, y = np.asarray(x, float), np.asarray(y, float)
     m0 = np.sum(x * y) / np.sum(x * x)
     se = np.sqrt(np.sum((y - m0 * x) ** 2) / (len(x) - 1) / np.sum(x * x))
     return m0, se
- 
+
+
 def zeile(name, m, sm, b, sb, m0, sm0, erwartung):
     print(f"{name:>10}: m = {m:.5e} +- {sm:.1e} | b = {b:+.3e} +- {sb:.1e} | "
           f"m0 = {m0:.5e} +- {sm0:.1e} | Erwartung = {erwartung:.5e} | m0/Erw.-1 = {100*(m0/erwartung-1):+.3f} %")
- 
-print("Aufgabe 5: p = m T  (Erwartung N kB / V in bar/K)")
+
+
+def kb_zustand(p_bar, V_m3, N, T):
+    return p_bar * 1e5 * V_m3 / (N * T)
+
+
+print("Aufgabe 2: Teilchenabstand d und Druck nach idealem Gasgesetz (L = 160 A)")
+V_box = (160e-10) ** 3
+for name, N, T in [("a", 100, 273.15), ("b", 500, 273.15), ("c", 100, 50), ("d", 100, 1000)]:
+    d = (V_box / N) ** (1 / 3) * 1e10
+    Vm = V_box * NA / N * 1e3
+    p = N * kB * T / V_box / 1e5
+    print(f"{name}: N = {N}, T = {T}, d = {d:.1f} A, d/sigma = {d/3.40:.1f}, Vm = {Vm:.3f} L/mol, p = {p:.3f} bar")
+
+print("\nAufgabe 4: erwartete Schwankung sigma_T = T sqrt(2/(3N)) bei 273.15 K")
+for N in [100, 250, 1000]:
+    s = 273.15 * np.sqrt(2 / (3 * N))
+    print(f"N = {N}: sigma_T = {s:.1f} K, relativ {100*s/273.15:.1f} %")
+
+print("\nAufgabe 5: p = m T  (Erwartung N kB / V in bar/K)")
 for L, d in u5.items():
     V = (L * 1e-10) ** 3
     zeile(f"L={L} A", *fit_frei(d["T"], d["p"]), *fit_ursprung(d["T"], d["p"]), N0 * kB / V / 1e5)
- 
+
 print("\nAufgabe 6: V = m T  (Erwartung N kB / p in A^3/K)")
 for p, d in u6.items():
     V = np.array(d["V"]) * 1e27
     zeile(f"p={p} bar", *fit_frei(d["T"], V), *fit_ursprung(d["T"], V), N0 * kB / (p * 1e5) * 1e30)
- 
+
 print("\nAufgabe 7: p = m / V  (Erwartung N kB T in bar L)")
 c2 = {}
-for T, p in u7.items():
-    m0, sm0 = fit_ursprung(invV, p)
+for T, d in u7.items():
+    m0, sm0 = fit_ursprung(invV, d["p"])
     c2[T] = m0
-    zeile(f"T={T} K", *fit_frei(invV, p), m0, sm0, N0 * kB * T / 1e5 * 1e3)
+    zeile(f"T={T} K", *fit_frei(invV, d["p"]), m0, sm0, N0 * kB * T / 1e5 * 1e3)
 alpha, s_alpha = fit_ursprung(list(c2), list(c2.values()))
-print(f"c2(300 K) = {alpha*300*1e27:.4e} +- {s_alpha*300*1e27:.1e} bar A^3  (Erwartung {N0*kB*300/1e5*1e3*1e27:.4e})")
- 
+c2_300 = alpha * 300 * 1e27
+c2_erw = N0 * kB * 300 / 1e5 * 1e3 * 1e27
+print(f"alpha = {alpha:.4e} +- {s_alpha:.1e} bar L/K")
+print(f"c2(300 K) = {c2_300:.4e} +- {s_alpha*300*1e27:.1e} bar A^3  (Erwartung {c2_erw:.4e}, Abweichung {100*(c2_300/c2_erw-1):+.3f} %)")
+
 print("\nAufgabe 8: V = m N + b  (Erwartung kB T / p in A^3, T = 300 K)")
-for p, V in u8.items():
-    V = np.array(V) * 1e27
+for p, d in u8.items():
+    V = np.array(d["V"]) * 1e27
     zeile(f"p={p} bar", *fit_frei(N8, V), *fit_ursprung(N8, V), kB * 300 / (p * 1e5) * 1e30)
- 
-kb = []
+    m, _, b, _ = fit_frei(N8, V)
+    print(f"{'':>10}  b/m = {b/m:.2f}")
+
+print("\nAufgabe 9: Vergleich der Konstanten bei N = 100")
+c1_m0, c1_s = fit_ursprung(u6[1.0]["T"], np.array(u6[1.0]["V"]) * 1e27)
+c1_erw = N0 * kB / 1e5 * 1e30
+print(f"c1 (p = 1 bar): {c1_m0:.5e} A^3/K, Erwartung {c1_erw:.5e}, Abweichung {100*(c1_m0/c1_erw-1):+.3f} %")
+m, sm, b, sb = fit_frei(N8, np.array(u8[1.0]["V"]) * 1e27)
+c3_erw = kB * 300 / 1e5 * 1e30
+print(f"c3 (T = 300 K, p = 1 bar): {m:.5e} +- {sm:.1e} A^3, Erwartung {c3_erw:.5e}, Abweichung {100*(m/c3_erw-1):+.3f} %")
+
+print("\nAufgabe 10: p = 1.0 bar, V = 4.096e-21 L, T = 300 K, N = 100")
+a = 1.0 / 300
+b_ = 4.096e-24 / 100
+kb10 = a * 1e5 * b_
+print(f"a = {a:.3e} bar/K, b = {b_*1e30:.4e} A^3, kB = {kb10:.4e} J/K ({100*(kb10/kB-1):+.2f} %), R = {NA*kb10:.3f} J/(mol K)")
+print(f"ideales Gas fuer diese Werte: p = {N0*kB*300/4.096e-24/1e5:.4f} bar")
+
+print("\nAufgabe 11: kB aus den 20 NVT-Zustaenden von Aufgabe 5")
+kb5 = []
 for L, d in u5.items():
     V = (L * 1e-10) ** 3
-    kb += [p * 1e5 * V / (N0 * T) for T, p in zip(d["T"], d["p"])]
-kb = np.array(kb)
-print(f"\nkB aus 20 Zustaenden: {kb.mean():.5e} J/K, Std {kb.std(ddof=1):.1e}, "
-      f"Standardfehler {kb.std(ddof=1)/np.sqrt(len(kb)):.1e}, Abweichung {100*(kb.mean()/kB-1):+.4f} %")
-print(f"R = NA * kB = {NA*kb.mean():.4f} J/(mol K)")
- 
-fig, ax = plt.subplots(figsize=(4.6, 3.5))
-for L, d in u5.items():
-    ax.errorbar(d["T"], d["p"], yerr=d["sd"], fmt="o", ms=4, capsize=2, label=f"L = {L} A")
-    m, _, b, _ = fit_frei(d["T"], d["p"])
-    ax.plot([0, 1050], [b, m * 1050 + b], "-", lw=1)
-ax.set_xlabel("Temperatur T (K)"); ax.set_ylabel("Druck p (bar)"); ax.legend(frameon=False)
-fig.tight_layout(); fig.savefig("abb_u5.pdf")
+    kb5 += [kb_zustand(pi, V, N0, Ti) for Ti, pi in zip(d["T"], d["p"])]
+kb5 = np.array(kb5)
+print(f"Mittelwert {kb5.mean():.5e} J/K, Std {kb5.std(ddof=1):.1e}, Standardfehler {kb5.std(ddof=1)/np.sqrt(len(kb5)):.1e}, Abweichung {100*(kb5.mean()/kB-1):+.4f} %")
+print(f"R = {NA*kb5.mean():.4f} J/(mol K)")
+
+kb6 = []
+for p, d in u6.items():
+    kb6 += [kb_zustand(p, V * 1e-3, N0, T) for T, V in zip(d["T"], d["V"])]
+kb6 = np.array(kb6)
+print(f"\n15 NPT-Zustaende (Aufgabe 6): {kb6.mean():.5e} J/K, Abweichung {100*(kb6.mean()/kB-1):+.4f} %")
+
+kb11 = np.array([kb_zustand(pm, V * 1e-3, N, T) for _, N, T, V, pm in u11])
+print(f"12 Zustaende mit verschiedenem N: {kb11.mean():.5e} +- {kb11.std(ddof=1)/np.sqrt(len(kb11)):.1e} J/K, Std {kb11.std(ddof=1):.1e}, Abweichung {100*(kb11.mean()/kB-1):+.4f} %")
+for N in [50, 100, 250, 500]:
+    T_rel = np.mean([T / 300 for _, n, T, _, _ in u11 if n == N])
+    print(f"N = {N}: mittlere Temperatur / 300 K = {T_rel:.4f}, 1 - 1/N = {1-1/N:.4f}")
+
+print("\nAufgabe 12: molares Volumen bei p = 1.01325 bar, T = 273.15 K, N = 100")
+Vm_ideal = R * 273.15 / 101325 * 1e3
+for gas, (T, V, sd) in u12.items():
+    Vm = V * NA / N0
+    print(f"{gas}: T = {T} K, Vm = {Vm:.3f} L/mol, Std = {sd*NA/N0:.3f} L/mol, Abweichung vom Idealwert {100*(Vm/Vm_ideal-1):+.2f} %, Vm p/(R T) = {Vm*1e-3*101325/(R*T):.4f}")
+print(f"Idealwert RT/p = {Vm_ideal:.3f} L/mol")
+
+
+def abbildung(dateiname, kurven, xlabel, ylabel, xmax):
+    fig, ax = plt.subplots(figsize=(4.6, 3.5))
+    for label, x, y, sd, farbe in kurven:
+        ax.errorbar(x, y, yerr=sd, fmt="o", ms=4, capsize=2, color=farbe, label=label)
+        m, _, b, _ = fit_frei(x, y)
+        ax.plot([0, xmax], [b, m * xmax + b], "-", lw=1, color=farbe)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.legend(frameon=False)
+    fig.tight_layout()
+    fig.savefig(dateiname)
+    plt.close(fig)
+
+
+farben = ["C0", "C1", "C2", "C3", "C4"]
+abbildung("abb_u5.pdf", [(f"L = {L} A", d["T"], d["p"], d["sd"], farben[i]) for i, (L, d) in enumerate(u5.items())],
+          "Temperatur T (K)", "Druck p (bar)", 1050)
+abbildung("abb_u6.pdf", [(f"p = {p} bar", d["T"], np.array(d["V"]) * 1e27, np.array(d["sd"]) * 1e27, farben[i]) for i, (p, d) in enumerate(u6.items())],
+          "Temperatur T (K)", "Volumen V (A$^3$)", 1050)
+abbildung("abb_u7.pdf", [(f"T = {T} K", invV, d["p"], d["sd"], farben[i]) for i, (T, d) in enumerate(u7.items())],
+          "1/V (1/L)", "Druck p (bar)", 3.8e20)
+abbildung("abb_u8.pdf", [(f"p = {p} bar", N8, np.array(d["V"]) * 1e27, np.array(d["sd"]) * 1e27, farben[i]) for i, (p, d) in enumerate(u8.items())],
+          "Teilchenzahl N", "Volumen V (A$^3$)", 520)
+
+
+#Teile wurden mit AI erzeugt weil es einfach schneller und effizienter ist. 
